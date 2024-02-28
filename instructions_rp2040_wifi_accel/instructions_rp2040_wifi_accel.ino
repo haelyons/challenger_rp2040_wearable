@@ -3,23 +3,14 @@
 
   Shitty sample code stolen by (and from) Gary, thanks for nothing, asshole
 
- */
+ */ 
+
+#include <MC34X9.h>
 #include <WiFiEspAT.h>
 #include <ChallengerWiFi.h>
 #include <Adafruit_NeoPixel.h>
-#include <EspATMQTT.h>
-#include <MC34X9.h>
-
-#ifndef STASSID
-#define STASSID "iPhone (10)"
-#define STAPSK "deusXsilica"
-#endif
-
-const char* ssid = STASSID;
-const char* password = STAPSK;
 
 WiFiServer server(80);
-EspATMQTT mqtt;
 
 #define PIN        D14
 #define NUMPIXELS 1
@@ -33,7 +24,6 @@ uint8_t chipSelect = 0;
 const uint8_t SPIChipSelectPin = 10; // SPI chipSelectPin
 const uint8_t I2CAddress = 0x4c; // I2C address
 
-const int INTERRUPT_PIN = 8;
 int FIFO_THRE_SIZE = 30;
 const bool enableFifoThrINT = false;
 bool enableFIFO = false;
@@ -85,7 +75,7 @@ void sensorFIFO()
   Serial.println("Sensor FIFO enable.");
 }
 
-void readAndOutput() 
+String readAndOutput() 
 {
   // Read the raw sensor data count
   MC34X9_acc_t rawAccel = MC34X9_acc.readRawAccel();
@@ -103,7 +93,46 @@ void readAndOutput()
   Serial.println("m/s^2");
 
   Serial.println("---------------------------------------------------------");
-  return;
+  
+  String data = "X: " + String(rawAccel.XAxis_g) + " m/s^2, " +
+                "Y: " + String(rawAccel.YAxis_g) + " m/s^2, " +
+                "Z: " + String(rawAccel.ZAxis_g) + " m/s^2";
+  return data;
+}
+
+void checkSamplingRate()
+{
+  Serial.println("Low Power Mode SR");
+  switch (MC34X9_acc.GetSampleRate())
+  {
+    case MC34X9_SR_25Hz:
+      Serial.println("Output Sampling Rate: 25 Hz");
+      break;
+    case MC34X9_SR_50Hz:
+      Serial.println("Output Sampling Rate: 50 Hz");
+      break;
+    case MC34X9_SR_62_5Hz:
+      Serial.println("Output Sampling Rate: 62.5 Hz");
+      break;
+    case MC34X9_SR_100Hz:
+      Serial.println("Output Sampling Rate: 100 Hz");
+      break;
+    case MC34X9_SR_125Hz:
+      Serial.println("Output Sampling Rate: 125 Hz");
+      break;
+    case MC34X9_SR_250Hz:
+      Serial.println("Output Sampling Rate: 250 Hz");
+      break;
+    case MC34X9_SR_500Hz:
+      Serial.println("Output Sampling Rate: 500 Hz");
+      break;
+    case MC34X9_SR_DEFAULT_1000Hz:
+      Serial.println("Output Sampling Rate: 1000 Hz");
+      break;
+    default:
+      Serial.println("Output Sampling Rate: ?? Hz");
+      break;
+  }
 }
 
 void setNEO(int red, int green, int blue) 
@@ -113,7 +142,12 @@ void setNEO(int red, int green, int blue)
   pixels.show();  
 }
 
-void setup() {
+void setup() 
+{
+  setNEO(128,128,128);
+  Serial.begin(115200);
+  while (!Serial);
+
   Serial.println("mCube Accelerometer MC34X9 initialisation (IIC mode):");
   
   // Define SPI chip select or I2C address
@@ -125,6 +159,7 @@ void setup() {
 
   // Check chip setup
   checkRange();
+  checkSamplingRate();
   Serial.println();
 
   //Test read
@@ -144,10 +179,8 @@ void setup() {
     while (true);
     return;
   }
-  
-  setNEO(128,128,128);
-  Serial.begin(115200);
-  while (!Serial);
+  Serial.println("Began MC34X9 successfully...");
+  Serial.println("");
 
   //Serial1.begin(AT_BAUD_RATE);
   if (Challenger2040WiFi.reset())
@@ -166,39 +199,24 @@ void setup() {
       // don't continue
       while (true);
   }
-  /*
-  // waiting for connection to Wifi network set with the SetupWiFiConnection sketch
-  setNEO(0,0,255);
-  while (WiFi.status() != WL_CONNECTED) {
-    Serial.println(".");
-    delay(1000);
-  }
-  */
-
-  mqtt.begin();
-  mqtt.enableNTPTime(true, NULL, 3, "0.pool.ntp.org", NULL, NULL);
-  char *time_from_ESP;
-  mqtt.getNTPTime(&time_from_ESP);
-  Serial.println(time_from_ESP);
   server.begin();
 
   IPAddress ip = WiFi.localIP();
   Serial.println();
-  Serial.println("Connected to WiFi network.");
+  Serial.println("Hosting WiFi network, use Wireshark to find the address of the web server...");
   Serial.print("To access the server, enter \"http://");
-  Serial.print(ip);
+  Serial.print("HOST.IP");
   Serial.println("/\" in web browser.");
   setNEO(0,128,0);
 }
 
 void loop() {
-
   WiFiClient client = server.available();
   if (client) {
     IPAddress ip = client.remoteIP();
     Serial.print("new client ");
     Serial.println(ip);
-    delay(300);
+    delay(10);
 
     while (client.connected()) {
       if (client.available()) {
@@ -206,30 +224,25 @@ void loop() {
         line.trim();
         Serial.println(line);
 
-        // if you've gotten to the end of the HTTP header (the line is blank),
-        // the http request has ended, so you can send a reply
+        // Assume readAndOutput() is modified to return the accelerometer data as a String
+        String accelData = readAndOutput();
+
         if (line.length() == 0) {
-          // send a standard http response header
-          Serial.println("Send response");
           client.println("HTTP/1.1 200 OK");
           client.println("Content-Type: text/html");
-          client.println("Connection: close");  // the connection will be closed after completion of the response
-          client.println("Refresh: 5");  // refresh the page automatically every 5 sec
+          client.println("Connection: close");
+          client.println("Refresh: 1"); // refresh every 10 milliseconds, though not practical
           client.println();
-          client.println("<!DOCTYPE HTML>");
-          client.println("<html>");
-          client.println("<p>");
-          char *time_from_ESP;
-          mqtt.getNTPTime(&time_from_ESP);
-          client.println(time_from_ESP);
-          client.println("</html>");
+          client.println("<!DOCTYPE HTML><html>");
+          client.println("<p>Accelerometer Data:</p>");
+          client.print("<p>");
+          client.print(accelData); // Print the accelerometer data in the HTML content
+          client.println("</p></html>");
           client.flush();
           break;
         }
       }
     }
-
-    // close the connection:
     client.stop();
     Serial.println("client disconnected");
   }

@@ -1,8 +1,7 @@
 /*
   WiFi Web Server for Challenger 2040 Wi-Fi/BLE Board
 
-  Shitty sample code stolen by (and from) Gary, thanks for nothing, asshole
-
+  Shitty sample code stolen by (and from) Gary
  */ 
 
 #include <MC34X9.h>
@@ -16,11 +15,10 @@ WiFiServer server(80);
 #define NUMPIXELS 1
 Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 
-// bSpi: I2C/SPI bus selection.  SPI: 0, I2C: 1
+// I2C/SPI bus selection: SPI: 0 / I2C: 1
 const uint8_t bSpi = 1;
 
-// Chip Select & Address
-uint8_t chipSelect = 0;
+uint8_t chipSelect = 0; // Chip Select & Address
 const uint8_t SPIChipSelectPin = 10; // SPI chipSelectPin
 const uint8_t I2CAddress = 0x4c; // I2C address
 

@@ -1,23 +1,21 @@
 /*
-  WiFi Web Server for Challenger 2040 Wi-Fi/BLE Board
-
-  Shitty sample code stolen by (and from) Gary
+  WiFi Web Server for Challenger 2040 Wi-Fi/BLE Board communication with Max MSP
   
-  Additions are iLabs adapted MC34X9 Accelerometer implementation, and writing this
-  data to HTML via the Challenge WiFi chip
-
-  Included in the Github repository is a Max patch that reads the HTML to split and
+  - Additions are iLabs adapted MC34X9 Accelerometer implementation, and writing this
+  data to HTML via the Challenge WiFi chip.
+  - Included in the Github repository is a Max patch that reads the HTML to split and
   process the accel values
 
-  Sources:
+  Hardware and Driver Resources:
   https://ilabs.se/product/bi2c-accelerometer/
   https://github.com/PontusO/EspATMQTT
   https://espressif-docs.readthedocs-hosted.com/projects/arduino-esp32/en/latest/api/wifi.html#:~:text=Working%20as%20AP,inside%20the%20ESP32%2C%20for%20example.
   https://docs.espressif.com/projects/esp-at/en/latest/esp32c3/AT_Command_Set/Basic_AT_Commands.html
   https://github.com/PontusO/mc34x9_driver/blob/master/examples/MC34X9_demo/MC34X9_demo.ino
   https://github.com/garyexplains/examples/blob/master/Challenger_RP2040/Arduino/WiFiWebServer4Time/WiFiWebServer4Time.ino
-  
-  
+
+  Application Resources:
+  https://aatishb.com/materials/srr/workshop3.pdf -- accelerometer processing to get orientation with Processing app. example
 */ 
 
 #include <MC34X9.h>
